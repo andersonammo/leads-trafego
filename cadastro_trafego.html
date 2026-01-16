@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro de Leads Tráfego - Óticas Ammo</title>
+    <title>Cadastro de Leads Tráfego - Óticas Ammo (Acumulativo)</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <style>
-        /* Cores Padrões Óticas Ammo (Amarelo e Preto) */
+        /* Cores Padrões Óticas Ammo */
         :root {
             --ammo-black: #121212;
             --ammo-yellow: #FFD700;
             --ammo-dark-grey: #2C2C2C;
             --text-color: #FFFFFF;
+            --danger-red: #ff4444;
         }
 
         body {
@@ -27,7 +28,7 @@
 
         .container {
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
             background-color: var(--ammo-dark-grey);
             padding: 30px;
             border-radius: 10px;
@@ -49,7 +50,7 @@
             color: var(--ammo-yellow);
         }
 
-        input, select, textarea {
+        input, select {
             width: 100%;
             padding: 12px;
             margin-top: 5px;
@@ -92,10 +93,18 @@
             color: white;
             margin-top: 30px;
         }
+        
+        .btn-whatsapp:hover { background-color: #1ebc57; }
 
-        .btn-whatsapp:hover {
-            background-color: #1ebc57;
+        .btn-clear {
+            background-color: var(--danger-red);
+            color: white;
+            margin-top: 10px;
+            font-size: 14px;
+            padding: 10px;
         }
+        
+        .btn-clear:hover { background-color: #cc0000; }
 
         table {
             width: 100%;
@@ -106,7 +115,7 @@
 
         th, td {
             border: 1px solid #555;
-            padding: 10px;
+            padding: 8px;
             text-align: left;
         }
 
@@ -115,22 +124,26 @@
             color: var(--ammo-black);
         }
 
-        .hidden {
-            display: none;
-        }
-
+        .hidden { display: none; }
+        
         .section-box {
             margin-bottom: 20px;
             padding-bottom: 20px;
             border-bottom: 1px solid #555;
+        }
+        
+        /* Estilo para barra de rolagem da tabela */
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #555;
         }
     </style>
 </head>
 <body>
 
     <div class="container" id="setupScreen">
-        <h1>Configuração Inicial</h1>
-        <p style="text-align: center;">Identificação para o Relatório</p>
+        <h1>Configuração Consultor Ammo</h1>
         
         <label>Nome do Colaborador:</label>
         <input type="text" id="colaboradorNome" placeholder="Seu nome">
@@ -138,13 +151,15 @@
         <label>Nome da Unidade/Ótica:</label>
         <input type="text" id="oticaNome" placeholder="Ex: Ammo Centro">
 
-        <button class="btn" onclick="startSystem()">Iniciar Sistema</button>
+        <button class="btn" onclick="startSystem()">Acessar Sistema</button>
     </div>
 
     <div class="container hidden" id="mainScreen">
         <h1>Cadastro de Leads - Tráfego</h1>
         <div style="text-align: center; margin-bottom: 20px; color: #ccc;">
             <span id="displayColaborador"></span> | <span id="displayOtica"></span>
+            <br>
+            <a href="#" onclick="changeUser()" style="color: var(--ammo-yellow); font-size: 12px;">(Alterar Usuário)</a>
         </div>
 
         <form id="leadForm">
@@ -189,17 +204,18 @@
             <button type="submit" class="btn">Cadastrar Lead</button>
         </form>
 
-        <h2>Leads Cadastrados Hoje</h2>
-        <div style="overflow-x:auto;">
+        <h2>Histórico de Leads (Acumulativo)</h2>
+        <div class="table-container">
             <table id="tabelaLeads">
                 <thead>
                     <tr>
+                        <th>Data</th>
                         <th>Nome</th>
                         <th>Telefone</th>
                         <th>Canal</th>
                         <th>Interesse</th>
                         <th>Comprou?</th>
-                        <th>Valor Venda</th>
+                        <th>Venda (R$)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -207,18 +223,39 @@
             </table>
         </div>
 
-        <button class="btn btn-whatsapp" onclick="gerarRelatorio()">
-            📊 Baixar Excel e Abrir WhatsApp
-        </button>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-whatsapp" onclick="gerarRelatorio()" style="flex: 2;">
+                📊 Baixar Excel Geral e Enviar
+            </button>
+            <button class="btn btn-clear" onclick="limparHistorico()" style="flex: 1;">
+                🗑️ Limpar Histórico
+            </button>
+        </div>
     </div>
 
     <script>
-        // Dados temporários
-        let leads = [];
-        let colaborador = "";
-        let otica = "";
+        // --- GERENCIAMENTO DE DADOS (LOCALSTORAGE) ---
+        
+        // Carrega leads salvos ou cria lista vazia
+        let leads = JSON.parse(localStorage.getItem('leads_ammo_db')) || [];
+        
+        // Carrega configuração de usuário salva
+        let savedConfig = JSON.parse(localStorage.getItem('leads_ammo_config')) || {};
+        
+        // Variáveis globais
+        let colaborador = savedConfig.colaborador || "";
+        let otica = savedConfig.otica || "";
 
-        // Inicializa o sistema
+        // Verifica se já tem usuário salvo ao abrir
+        if (colaborador && otica) {
+            document.getElementById('colaboradorNome').value = colaborador;
+            document.getElementById('oticaNome').value = otica;
+            // Opcional: pular direto para a tela principal
+            // startSystem(); 
+        }
+
+        // --- FUNÇÕES DO SISTEMA ---
+
         function startSystem() {
             colaborador = document.getElementById('colaboradorNome').value;
             otica = document.getElementById('oticaNome').value;
@@ -228,14 +265,23 @@
                 return;
             }
 
+            // Salva configuração no navegador
+            localStorage.setItem('leads_ammo_config', JSON.stringify({ colaborador, otica }));
+
             document.getElementById('displayColaborador').innerText = "Colaborador: " + colaborador;
             document.getElementById('displayOtica').innerText = "Unidade: " + otica;
             
             document.getElementById('setupScreen').classList.add('hidden');
             document.getElementById('mainScreen').classList.remove('hidden');
+
+            atualizarTabela(); // Carrega a tabela com dados antigos
         }
 
-        // Mostra campo de valor se comprou
+        function changeUser() {
+            document.getElementById('mainScreen').classList.add('hidden');
+            document.getElementById('setupScreen').classList.remove('hidden');
+        }
+
         function toggleVenda() {
             const comprou = document.getElementById('comprou').value;
             const divValor = document.getElementById('divValorVenda');
@@ -251,12 +297,19 @@
             }
         }
 
-        // Captura o envio do formulário
+        // --- CADASTRO ---
+
         document.getElementById('leadForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
+            // Pega data e hora atual
+            const now = new Date();
+            const dataFormatada = now.toLocaleDateString('pt-BR');
+            const horaFormatada = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
             const lead = {
-                Data: new Date().toLocaleDateString(),
+                Data: dataFormatada,
+                Hora: horaFormatada,
                 Colaborador: colaborador,
                 Unidade: otica,
                 Nome: document.getElementById('nome').value,
@@ -269,67 +322,82 @@
                 ValorVenda: document.getElementById('valorVenda').value || "0.00"
             };
 
+            // Adiciona na lista
             leads.push(lead);
+
+            // SALVA NO NAVEGADOR (PERSISTÊNCIA)
+            localStorage.setItem('leads_ammo_db', JSON.stringify(leads));
+
             atualizarTabela();
+            
+            // Reseta formulário
             document.getElementById('leadForm').reset();
             document.getElementById('comprou').value = "Não";
-            toggleVenda(); // Esconder campo de venda
-            alert("Lead cadastrado com sucesso!");
+            toggleVenda();
+            
+            alert("Lead salvo com sucesso!");
         });
 
-        // Atualiza a tabela na tela
+        // --- TABELA ---
+
         function atualizarTabela() {
             const tbody = document.querySelector('#tabelaLeads tbody');
             tbody.innerHTML = "";
 
+            // Inverte a ordem para mostrar os mais recentes primeiro na tabela (opcional)
+            // Aqui mantivemos ordem de cadastro, mas vamos rolar a tabela para baixo se necessário
             leads.forEach(lead => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
+                    <td>${lead.Data} <small>(${lead.Hora})</small></td>
                     <td>${lead.Nome}</td>
                     <td>${lead.Telefone}</td>
                     <td>${lead.Canal}</td>
                     <td>${lead.Produto}</td>
-                    <td>${lead.Comprou}</td>
+                    <td style="color: ${lead.Comprou === 'Sim' ? '#25D366' : '#fff'}">${lead.Comprou}</td>
                     <td>R$ ${lead.ValorVenda}</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // Gera Excel e Redireciona para o WhatsApp
+        // --- RELATÓRIO E LIMPEZA ---
+
         function gerarRelatorio() {
             if (leads.length === 0) {
-                alert("Nenhum lead cadastrado para gerar relatório.");
+                alert("Nenhum lead no histórico.");
                 return;
             }
 
-            // 1. Criar Planilha Excel
             const ws = XLSX.utils.json_to_sheet(leads);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Leads");
+            XLSX.utils.book_append_sheet(wb, ws, "Leads Acumulados");
 
-            // Nome do arquivo com data
-            const fileName = `Relatorio_Leads_Ammo_${new Date().toISOString().slice(0,10)}.xlsx`;
-            
-            // Salvar arquivo
+            const fileName = `Relatorio_Leads_Acumulado_${new Date().toISOString().slice(0,10)}.xlsx`;
             XLSX.writeFile(wb, fileName);
 
-            // 2. Criar Link do WhatsApp
             const phone = "5541996509734";
             const message = encodeURIComponent(
-                `Olá! Segue o relatório de leads de hoje.\n\n` +
-                `👤 *Colaborador:* ${colaborador}\n` +
-                `👓 *Unidade:* ${otica}\n` +
+                `Olá! Segue o relatório acumulado.\n\n` +
+                `👤 *Enviado por:* ${colaborador}\n` +
+                `🏢 *Unidade:* ${otica}\n` +
+                `📅 *Período:* Todo histórico salvo\n` +
                 `📊 *Total de Leads:* ${leads.length}\n\n` +
-                `⚠️ *O arquivo Excel foi baixado no seu dispositivo. Por favor, anexe-o aqui.*`
+                `⚠️ *Anexe o arquivo Excel baixado.*`
             );
 
-            const whatsappUrl = `https://wa.me/${phone}?text=${message}`;
-
-            // 3. Abrir WhatsApp após um pequeno delay para garantir o download
             setTimeout(() => {
-                window.open(whatsappUrl, '_blank');
+                window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
             }, 1000);
+        }
+
+        function limparHistorico() {
+            if (confirm("TEM CERTEZA? Isso apagará todos os leads salvos neste navegador. Faça o download do Excel antes se precisar.")) {
+                leads = [];
+                localStorage.removeItem('leads_ammo_db');
+                atualizarTabela();
+                alert("Histórico limpo com sucesso.");
+            }
         }
     </script>
 </body>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Leads Tráfego - Óticas Ammo</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <style>
+        /* Cores Padrões Óticas Ammo (Amarelo e Preto) */
+        :root {
+            --ammo-black: #121212;
+            --ammo-yellow: #FFD700;
+            --ammo-dark-grey: #2C2C2C;
+            --text-color: #FFFFFF;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--ammo-black);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--ammo-dark-grey);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+            border: 1px solid var(--ammo-yellow);
+        }
+
+        h1, h2 {
+            color: var(--ammo-yellow);
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+            color: var(--ammo-yellow);
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-top: 5px;
+            background-color: #444;
+            border: 1px solid #666;
+            color: white;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--ammo-yellow);
+            background-color: #555;
+        }
+
+        .btn {
+            background-color: var(--ammo-yellow);
+            color: var(--ammo-black);
+            font-weight: bold;
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            font-size: 18px;
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #e6c200;
+            transform: scale(1.02);
+        }
+
+        .btn-whatsapp {
+            background-color: #25D366;
+            color: white;
+            margin-top: 30px;
+        }
+
+        .btn-whatsapp:hover {
+            background-color: #1ebc57;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+            font-size: 14px;
+        }
+
+        th, td {
+            border: 1px solid #555;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--ammo-yellow);
+            color: var(--ammo-black);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .section-box {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #555;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="setupScreen">
+        <h1>Configuração Inicial</h1>
+        <p style="text-align: center;">Identificação para o Relatório</p>
+        
+        <label>Nome do Colaborador:</label>
+        <input type="text" id="colaboradorNome" placeholder="Seu nome">
+
+        <label>Nome da Unidade/Ótica:</label>
+        <input type="text" id="oticaNome" placeholder="Ex: Ammo Centro">
+
+        <button class="btn" onclick="startSystem()">Iniciar Sistema</button>
+    </div>
+
+    <div class="container hidden" id="mainScreen">
+        <h1>Cadastro de Leads - Tráfego</h1>
+        <div style="text-align: center; margin-bottom: 20px; color: #ccc;">
+            <span id="displayColaborador"></span> | <span id="displayOtica"></span>
+        </div>
+
+        <form id="leadForm">
+            <div class="section-box">
+                <label for="nome">Nome do Cliente *</label>
+                <input type="text" id="nome" required>
+
+                <label for="telefone">Telefone (WhatsApp) *</label>
+                <input type="tel" id="telefone" placeholder="(41) 99999-9999" required>
+
+                <label for="canal">Canal de Captura *</label>
+                <select id="canal" required>
+                    <option value="">Selecione...</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="Google Ads">Google Ads</option>
+                    <option value="TikTok">TikTok</option>
+                    <option value="Indicação">Indicação</option>
+                </select>
+
+                <label for="produto">Produto de Interesse *</label>
+                <input type="text" id="produto" placeholder="Ex: Armação Solar, Grau, Lentes..." required>
+
+                <label for="orcamento">Valor do Orçamento (R$) *</label>
+                <input type="number" id="orcamento" step="0.01" required>
+
+                <label for="objecao">Objeção do Cliente *</label>
+                <input type="text" id="objecao" placeholder="Ex: Preço, Vai falar com marido, etc." required>
+
+                <label for="comprou">O cliente comprou? *</label>
+                <select id="comprou" onchange="toggleVenda()" required>
+                    <option value="Não">Não</option>
+                    <option value="Sim">Sim</option>
+                </select>
+
+                <div id="divValorVenda" class="hidden">
+                    <label for="valorVenda">Valor da Venda (R$) *</label>
+                    <input type="number" id="valorVenda" step="0.01">
+                </div>
+            </div>
+
+            <button type="submit" class="btn">Cadastrar Lead</button>
+        </form>
+
+        <h2>Leads Cadastrados Hoje</h2>
+        <div style="overflow-x:auto;">
+            <table id="tabelaLeads">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Telefone</th>
+                        <th>Canal</th>
+                        <th>Interesse</th>
+                        <th>Comprou?</th>
+                        <th>Valor Venda</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+
+        <button class="btn btn-whatsapp" onclick="gerarRelatorio()">
+            📊 Baixar Excel e Abrir WhatsApp
+        </button>
+    </div>
+
+    <script>
+        // Dados temporários
+        let leads = [];
+        let colaborador = "";
+        let otica = "";
+
+        // Inicializa o sistema
+        function startSystem() {
+            colaborador = document.getElementById('colaboradorNome').value;
+            otica = document.getElementById('oticaNome').value;
+
+            if (!colaborador || !otica) {
+                alert("Por favor, preencha seu nome e a unidade.");
+                return;
+            }
+
+            document.getElementById('displayColaborador').innerText = "Colaborador: " + colaborador;
+            document.getElementById('displayOtica').innerText = "Unidade: " + otica;
+            
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('mainScreen').classList.remove('hidden');
+        }
+
+        // Mostra campo de valor se comprou
+        function toggleVenda() {
+            const comprou = document.getElementById('comprou').value;
+            const divValor = document.getElementById('divValorVenda');
+            const inputValor = document.getElementById('valorVenda');
+
+            if (comprou === 'Sim') {
+                divValor.classList.remove('hidden');
+                inputValor.setAttribute('required', 'required');
+            } else {
+                divValor.classList.add('hidden');
+                inputValor.removeAttribute('required');
+                inputValor.value = "";
+            }
+        }
+
+        // Captura o envio do formulário
+        document.getElementById('leadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const lead = {
+                Data: new Date().toLocaleDateString(),
+                Colaborador: colaborador,
+                Unidade: otica,
+                Nome: document.getElementById('nome').value,
+                Telefone: document.getElementById('telefone').value,
+                Canal: document.getElementById('canal').value,
+                Produto: document.getElementById('produto').value,
+                Orcamento: document.getElementById('orcamento').value,
+                Objecao: document.getElementById('objecao').value,
+                Comprou: document.getElementById('comprou').value,
+                ValorVenda: document.getElementById('valorVenda').value || "0.00"
+            };
+
+            leads.push(lead);
+            atualizarTabela();
+            document.getElementById('leadForm').reset();
+            document.getElementById('comprou').value = "Não";
+            toggleVenda(); // Esconder campo de venda
+            alert("Lead cadastrado com sucesso!");
+        });
+
+        // Atualiza a tabela na tela
+        function atualizarTabela() {
+            const tbody = document.querySelector('#tabelaLeads tbody');
+            tbody.innerHTML = "";
+
+            leads.forEach(lead => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${lead.Nome}</td>
+                    <td>${lead.Telefone}</td>
+                    <td>${lead.Canal}</td>
+                    <td>${lead.Produto}</td>
+                    <td>${lead.Comprou}</td>
+                    <td>R$ ${lead.ValorVenda}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Gera Excel e Redireciona para o WhatsApp
+        function gerarRelatorio() {
+            if (leads.length === 0) {
+                alert("Nenhum lead cadastrado para gerar relatório.");
+                return;
+            }
+
+            // 1. Criar Planilha Excel
+            const ws = XLSX.utils.json_to_sheet(leads);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Leads");
+
+            // Nome do arquivo com data
+            const fileName = `Relatorio_Leads_Ammo_${new Date().toISOString().slice(0,10)}.xlsx`;
+            
+            // Salvar arquivo
+            XLSX.writeFile(wb, fileName);
+
+            // 2. Criar Link do WhatsApp
+            const phone = "5541996509734";
+            const message = encodeURIComponent(
+                `Olá! Segue o relatório de leads de hoje.\n\n` +
+                `👤 *Colaborador:* ${colaborador}\n` +
+                `👓 *Unidade:* ${otica}\n` +
+                `📊 *Total de Leads:* ${leads.length}\n\n` +
+                `⚠️ *O arquivo Excel foi baixado no seu dispositivo. Por favor, anexe-o aqui.*`
+            );
+
+            const whatsappUrl = `https://wa.me/${phone}?text=${message}`;
+
+            // 3. Abrir WhatsApp após um pequeno delay para garantir o download
+            setTimeout(() => {
+                window.open(whatsappUrl, '_blank');
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
